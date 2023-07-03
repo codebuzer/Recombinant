@@ -1,0 +1,61 @@
+import pandas as pd
+import seaborn as sns
+import numpy as np
+df  = pd.read_csv('ba2_mutation_frequency.csv')
+ld = pd.read_csv('ba2_ld.csv')
+
+def temp(df, ld):
+    df = df[['mutations','Category','Freq']]
+    ld = ld[ld['L1'].isin(df['mutations']) & ld['L2'].isin(df['mutations'])]
+    df = pd.merge(df, ld, left_on='mutations', right_on='L1')
+    df = df.dropna().loc[:, ["mutations", "Freq", "Category", "L1", "L2" ,"r^2","D'"]]
+    df = df[df["D'"] >=0.9 ]
+    df = df[df["r^2"] >=0.5 ]
+    df = df.drop_duplicates(subset='mutations', keep="first")
+    df = pd.get_dummies(df,columns = ['Category'])
+    df = df.rename(columns = {'Category_high':'High',
+                         'Category_low':'Low',
+                         'Category_medium':'Medium',
+                         })
+    df_corr = df[["Freq","r^2","D'",'High', 'Low']]
+    
+    if 'Medium' in df_corr:
+        df_corr["Medium"] = df_corr["Medium"].astype(int)
+    else:
+        df_corr["Medium"] = 0
+        
+    if 'High' in df_corr:
+        df_corr["High"] = df_corr["High"].astype(int)
+    else:
+        df_corr["High"] = 0
+        
+    if 'Low' in df_corr:
+        df_corr["Low"] = df_corr["Low"].astype(int)
+    else:
+        df_corr["Low"] = 0
+    
+    corr = df_corr.corr()
+    corr = corr.iloc[0:3,3:]
+    corr = corr.fillna(0)
+    
+    return corr
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+plt.figure(dpi=600, figsize=(2, 1))
+ax = sns.heatmap(corr, annot=True, annot_kws={"size": 3}, cmap="YlGnBu")
+ax.tick_params(axis='both', which='both', length=0)
+plt.xticks(fontsize=3)
+plt.yticks(fontsize=3)
+
+# Get the colorbar object from the heatmap plot
+cbar = ax.collections[0].colorbar
+cbar.ax.tick_params(labelsize=3)  # Set the font size of the colorbar labels
+cbar.set_label('Correlation', fontsize=4) 
+plt.title('Mutation frequency and LD correlation of XYZ', fontsize = 5)
+#plt.savefig('B.1.1.529.jpg', format='jpg', dpi=600)
+
+plt.show()
+
+
+
